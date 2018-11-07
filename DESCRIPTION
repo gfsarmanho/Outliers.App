@@ -1,0 +1,17 @@
+Package: Outliers.App
+Type: Package
+Title: Shiny app for outliers analysis
+Version: 0.1.0
+Author@R: person("Gabriel", "F. Sarmanho", email = "gfsarmanho@inmetro.gov.br", role = c("aut", "cre"))
+Description: This application implements different methods for Outliers analysis
+License: GLP-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+  shiny,
+  readxl,
+  outliers,
+  rmarkdown,
+  tinytex
+URL: https://github.com/gfsarmanho/Outliers.App
+RoxygenNote: 6.1.0
