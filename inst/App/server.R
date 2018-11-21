@@ -67,6 +67,29 @@ shinyServer(function(input, output, session){
   # Tests #
   #-------#
 
+  output$out_table <- renderFormattable({
+    tab_dados <- data.frame(Replica=1:RV$n.dados,
+                            Medicao=RV$dados,
+                            Resultado=rep("OK", RV$n.dados))
+    formattable(tab_dados, list())
+  })
+
+  output$out_test <- renderPrint({
+
+    if(is.null(RV$dados)){
+      return(invisible())
+    } else {
+      switch(input$outlierTest,
+             "Intervalo" = IQR.test(x=RV$dados),
+             "Grubbs one" = RV$res_grubbs_10,
+             "Grubbs two" = RV$res_grubbs_11,
+             "Grubbs two (opostos)" = RV$res_grubbs_20
+      )
+    }
+  })
+
+
+
   # IQR
   output$t_IQR <- renderPrint({
     if(is.null(RV$dados)){
@@ -79,7 +102,7 @@ shinyServer(function(input, output, session){
   # Grubbs
   output$t_grubbs_10 <- renderPrint({
     if(is.null(RV$dados)){
-      return(invisible(invisible()))
+      return(invisible())
     } else {
       RV$res_grubbs_10
     }

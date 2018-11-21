@@ -8,7 +8,7 @@
 library(shiny)
 library(shinyjs)
 library(shinyWidgets) # Nice inputs/buttons
-
+library(formattable)  # Nice table
 # library(shinythemes)
 
 library(readxl)       # Read/write .xls, .xlsx files
@@ -67,10 +67,10 @@ shinyUI(fluidPage(
             wellPanel(
               # h3("Relatório"),
               # radioButtons(inputId="format", label="Formato do documento",
-              #              c('PDF', 'HTML', 'Word'), inline = TRUE),
+              #              c("PDF", "HTML", "Word"), inline = TRUE),
               # shinyWidgets::radioGroupButtons(
               #   inputId="format", label="Formato do documento",
-              #   choices=c('PDF', 'HTML', 'Word'), selected="PDF",
+              #   choices=c("PDF", "HTML", "Word"), selected="PDF",
               #   checkIcon = list(yes = tags$i(class = "fa fa-check-square",
               #                                 style = "color: steelblue"),
               #                    no = tags$i(class = "fa fa-square-o",
@@ -96,30 +96,31 @@ shinyUI(fluidPage(
               tabPanel(
                 title="Outliers",
                 br(),
-                verbatimTextOutput(outputId="print_dados"),
+                # verbatimTextOutput(outputId="print_dados"),
 
                 shinyWidgets::radioGroupButtons(
-                  inputId="tests", label="Selecione o teste", justified=FALSE,
-                  choices=c('Intervalo', 'Grubbs one', 'Grubbs two', 'Grubbs'),
+                  inputId="outlierTest", label="Selecione o teste:", justified=FALSE,
+                  choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs two (opostos)"),
                   checkIcon = list(yes = tags$i(class = "fa fa-check-square",
                                                 style = "color: steelblue"),
                                    no = tags$i(class = "fa fa-square-o",
                                                style = "color: steelblue"))
                 ),
 
+                plotOutput(outputId="dados"),
                 fluidRow(
-                  column(6, plotOutput(outputId="dados")),
-                  column(6, plotOutput(outputId="out_test"))
-                ),
-
-                fluidRow(
-                  column(6, verbatimTextOutput(outputId="t_IQR")),
-                  column(6, verbatimTextOutput(outputId="t_grubbs_10"))
-                ),
-                fluidRow(
-                  column(6, verbatimTextOutput(outputId="t_grubbs_11")),
-                  column(6, verbatimTextOutput(outputId="t_grubbs_20"))
+                  column(6, formattableOutput("out_table")),
+                  column(6, verbatimTextOutput(outputId="out_test"))
                 )
+
+                # fluidRow(
+                #   column(6, verbatimTextOutput(outputId="t_IQR")),
+                #   column(6, verbatimTextOutput(outputId="t_grubbs_10"))
+                # ),
+                # fluidRow(
+                #   column(6, verbatimTextOutput(outputId="t_grubbs_11")),
+                #   column(6, verbatimTextOutput(outputId="t_grubbs_20"))
+                # )
 
               ), #endof tabpanel()
 
