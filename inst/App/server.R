@@ -24,15 +24,15 @@ shinyServer(function(input, output, session){
       arq_names <- input$file1$datapath
       arq_ext   <- tail(unlist(strsplit(x=input$file1$name, split="\\.")), n=1)
 
-      if(arq_ext == "txt")  dados <- read.table(arq_names, sep="\t", header=input$header)
-      if(arq_ext == "csv")  dados <- read.csv(arq_names, sep=",", dec=".", header=input$header)
+      if(arq_ext == "txt")  dados <- read.table(arq_names, sep="\t", header=input$checkHeader)
+      if(arq_ext == "csv")  dados <- read.csv(arq_names, sep=",", dec=".", header=input$checkHeader)
       if(arq_ext %in% c("xls", "xlsx")) dados <- readxl::read_excel(arq_names, sheet=1)
 
 
       dados <- as.data.frame(dados)
       RV$dados <- as.numeric(dados[, ncol(dados)])
 
-      if(input$header) RV$measu <- names(dados)[ncol(dados)] else RV$measu <- ""
+      if(input$checkHeader) RV$measu <- names(dados)[ncol(dados)] else RV$measu <- ""
 
       RV$n.dados <- length(RV$dados)
 
@@ -42,6 +42,9 @@ shinyServer(function(input, output, session){
       RV$res_grubbs_20 <- grubbs.test(x=RV$dados, type=20)
 
       # RV$res_iqr <- IQR.test(x=RV$dados)
+
+      shinyjs::show(id="showReportBtn")
+      shinyjs::show(id="mainPanel")
 
     }
   ) #endof observeEvent()
@@ -138,17 +141,83 @@ shinyServer(function(input, output, session){
 
       p_name <- "plot_histograma"
       assign(x=p_name, envir=.GlobalEnv, value= function(){
-        hist(RV$dados, col=plot_colors[3], xlab="Dados", ylab="Frequencia", main=RV$measu)
+
+        hist(RV$dados, col=plot_colors[1], prob=TRUE,
+             xlab="Dados", ylab="Frequencia", main=RV$measu)
+        lines(density(RV$dados), col=plot_colors[2], lwd=2)
+
       })
       get(p_name)()
 
     }
   })
 
+  # Plot - qqPlot
+  output$qqplot <- renderPlot({
+    if(is.null(RV$dados)){
+      return()
+    } else {
+
+      p_name <- "plot_qqplot"
+      assign(x=p_name, envir=.GlobalEnv, value= function(){
+
+        qqnorm(RV$dados, col=plot_colors[1], pch=19,
+               xlab="Quantis Teóricos", ylab="Quantis amostrais", main=RV$measu)
+        qqline(RV$dados, col=plot_colors[2], lwd=2)
+
+      })
+      get(p_name)()
+
+    }
+  })
 
   # shapiro.test(x)
   # qqnorm(, main="Normal QQ Plot")
   # qqline(, col="")
+
+  observeEvent(input$modalReportBtn, {
+
+    showModal(modalDialog(easyClose=TRUE, footer=NULL,
+      title = "Informações para gerar relatório técnico",
+
+      textInput(inputId="personModal", label="Responsável"),
+
+      # checkboxGroupButtons(inputId="testsModal", label="Incluir testes:",
+      #                      choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
+      #                      selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
+      # ),
+      shinyWidgets::awesomeCheckboxGroup(
+        inputId="testsModal", label="Incluir testes:",
+        choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
+        selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
+      ),
+      shinyWidgets::awesomeCheckboxGroup(
+        inputId="diagsModal", label="Incluir Diagnósticos:",
+        choices=c("Histograma", "qqplot", "boxplot"),
+        selected=c("Histograma", "qqplot", "boxplot")
+      ),
+      textAreaInput(inputId="obsModal", label="Observações:", value = "",
+                    placeholder="Insira aqui comentários gerais."),
+      br(),
+      shinyWidgets::radioGroupButtons(
+        inputId="format", label="Formato do documento",
+        choices=c("PDF", "HTML", "Word"), selected="PDF",
+        checkIcon = list(yes = tags$i(class = "fa fa-check-square",
+                                      style = "color: steelblue"),
+                         no = tags$i(class = "fa fa-square-o",
+                                     style = "color: steelblue"))
+      ),
+      # icon=icon(name="file-pdf", lib="font-awesome")
+      # icon=icon(name="file-word", lib="font-awesome")
+      # icon=icon(name="html5", lib="font-awesome")
+
+      downloadButton(outputId="downReportBtn", label="Gerar relatório",
+                      class="btn-default") #style="background-color: black; color: white;")
+
+    ))
+
+  })
+
 
   #
   output$downReportBtn <- downloadHandler(
