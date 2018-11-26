@@ -5,13 +5,17 @@
 
 shinyServer(function(input, output, session){
 
+
+
+
   # Reactive variables
   RV <- reactiveValues(
     dados = NULL,
     measu = "",
     res_grubbs_10 = NULL,
     res_grubbs_11 = NULL,
-    res_grubbs_20 = NULL
+    res_grubbs_20 = NULL,
+    res_dixon = NULL
   )
 
   observeEvent(
@@ -19,6 +23,9 @@ shinyServer(function(input, output, session){
       input$loadFile
     },
     handlerExpr={
+
+      # Ensure there is an input file
+      req(input$file1)
 
       # Load data file
       arq_names <- input$file1$datapath
@@ -40,6 +47,8 @@ shinyServer(function(input, output, session){
       RV$res_grubbs_10 <- grubbs.test(x=RV$dados, type=10)
       RV$res_grubbs_11 <- grubbs.test(x=RV$dados, type=11)
       RV$res_grubbs_20 <- grubbs.test(x=RV$dados, type=20)
+
+      RV$res_dixon <- dixon.test(x=RV$dados, type=0)
 
       # RV$res_iqr <- IQR.test(x=RV$dados)
 
@@ -68,10 +77,25 @@ shinyServer(function(input, output, session){
   #-------#
 
   output$out_table <- renderFormattable({
-    tab_dados <- data.frame(Replica=1:RV$n.dados,
-                            Medicao=RV$dados,
-                            Resultado=rep("OK", RV$n.dados))
-    formattable(tab_dados, list())
+    tab_dados <- data.frame(stringsAsFactors=FALSE,
+                            Réplica=1:RV$n.dados,
+                            Medição=RV$dados, #accounting(RV$dados),
+                            Resultado=c(rep(TRUE, RV$n.dados-1), FALSE)
+    )
+
+    formattable(tab_dados, align=c("c","c","c"), list(
+
+      Réplica = formatter(
+        "span", style = ~ style(color="grey", font.weight="bold")
+      ),
+      Medição = color_tile("white", plot_colors[1]),
+      Resultado = formatter("span",
+                style = x ~ style(color=ifelse(x, "green", "red")),
+                x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Ok", "Outlier"))
+      )
+
+
+    ))
   })
 
   output$out_test <- renderPrint({
@@ -83,7 +107,8 @@ shinyServer(function(input, output, session){
              "Intervalo" = IQR.test(x=RV$dados),
              "Grubbs one" = RV$res_grubbs_10,
              "Grubbs two" = RV$res_grubbs_11,
-             "Grubbs two (opostos)" = RV$res_grubbs_20
+             "Grubbs two (opostos)" = RV$res_grubbs_20,
+             "Dixon" = RV$res_dixon
       )
     }
   })
@@ -122,6 +147,15 @@ shinyServer(function(input, output, session){
     }
   })
 
+  # Dixon
+  output$t_dixon <- renderPrint({
+    if(is.null(RV$dados)){
+      return(invisible())
+    } else {
+      RV$res_dixon
+    }
+  })
+
   #-------#
   # Plots #
   #-------#
@@ -134,7 +168,7 @@ shinyServer(function(input, output, session){
 
       p_name <- "plot_dados"
       assign(x=p_name, envir=.GlobalEnv, value= function(){
-        plot(sort(RV$dados), pch=19, col=plot_colors[1],
+        plot(sort(RV$dados), col=plot_colors[1], pch=19, cex=1.5,
              xlab="Dados ordenados", ylab="", main=RV$measu)
       })
       get(p_name)()
@@ -211,8 +245,8 @@ shinyServer(function(input, output, session){
       # ),
       shinyWidgets::awesomeCheckboxGroup(
         inputId="testsModal", label="Incluir testes:",
-        choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
-        selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
+        choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon"),
+        selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon")
       ),
       shinyWidgets::awesomeCheckboxGroup(
         inputId="diagsModal", label="Incluir Diagnósticos:",
@@ -257,9 +291,12 @@ shinyServer(function(input, output, session){
       file.copy(from=src, to="relatorio.Rmd", overwrite=TRUE)
 
       library(rmarkdown)
-      out <- render(input="relatorio.Rmd",
-                    output_format=switch(input$format, PDF=pdf_document(),
-                                         HTML=html_document(), Word=word_document())
+      out <- rmarkdown::render(input="relatorio.Rmd",
+                               encoding="UTF-8",
+                               output_format=switch(input$format,
+                                                    PDF=pdf_document(),
+                                                    HTML=html_document(),
+                                                    Word=word_document())
       )
 
       file.rename(out, file)

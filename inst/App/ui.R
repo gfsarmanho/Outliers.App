@@ -53,8 +53,13 @@ shinyUI(fluidPage(
           inputId="checkHeader", label="Inclui cabeçalho", value=TRUE
         ))
       ),
-      shinyWidgets::awesomeCheckbox( #checkboxInput( #
-        inputId="checkManual", label="Inserir dados manualmente", value=FALSE
+
+      shinyjs::disabled(
+        div(id="insertManualData",
+            shinyWidgets::awesomeCheckbox( #checkboxInput( #
+              inputId="checkManual", label="Inserir dados manualmente", value=FALSE
+            )
+        )
       ),
       # textInput(inputId="data1", label="Inserir dados manualmente:"),
 
@@ -98,19 +103,22 @@ shinyUI(fluidPage(
                 br(),
                 # verbatimTextOutput(outputId="print_dados"),
 
-                shinyWidgets::radioGroupButtons(
-                  inputId="outlierTest", label="Selecione o teste:", justified=FALSE,
-                  choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs two (opostos)"),
-                  checkIcon = list(yes = tags$i(class = "fa fa-check-square",
-                                                style = "color: steelblue"),
-                                   no = tags$i(class = "fa fa-square-o",
-                                               style = "color: steelblue"))
-                ),
-
-                plotOutput(outputId="dados"),
                 fluidRow(
-                  column(6, formattableOutput("out_table")),
-                  column(6, verbatimTextOutput(outputId="out_test"))
+                  column(2, shinyWidgets::radioGroupButtons(
+                    inputId="outlierTest", label="Selecione o teste:",
+                    justified=FALSE, size="normal", direction="vertical", individual=FALSE,
+                    choices=c("Intervalo", "Grubbs one", "Grubbs two",
+                              "Grubbs two (opostos)", "Dixon"),
+                    checkIcon = list(yes = tags$i(class = "fa fa-check-square",
+                                                  style = "color: steelblue"),
+                                     no = tags$i(class = "fa fa-square-o",
+                                                 style = "color: steelblue"))
+                  )),
+                  column(10, plotOutput(outputId="dados"))
+                ),
+                fluidRow(
+                  column(4, formattable::formattableOutput(outputId="out_table", width = "50%")),
+                  column(8, verbatimTextOutput(outputId="out_test"))
                 )
 
                 # fluidRow(
