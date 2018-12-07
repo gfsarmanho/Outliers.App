@@ -5,17 +5,21 @@
 
 shinyServer(function(input, output, session){
 
-
-
-
   # Reactive variables
   RV <- reactiveValues(
     dados = NULL,
     measu = "",
+
+    res_fun_out = NULL,
+    tab_test    = NULL,
+    out.ind     = NULL,
+
+    res_iqr       = NULL,
     res_grubbs_10 = NULL,
     res_grubbs_11 = NULL,
     res_grubbs_20 = NULL,
-    res_dixon = NULL
+    res_dixon     = NULL,
+    res_chisq     = NULL
   )
 
   observeEvent(
@@ -44,13 +48,23 @@ shinyServer(function(input, output, session){
       RV$n.dados <- length(RV$dados)
 
       # Evaluate tests
-      RV$res_grubbs_10 <- grubbs.test(x=RV$dados, type=10)
-      RV$res_grubbs_11 <- grubbs.test(x=RV$dados, type=11)
-      RV$res_grubbs_20 <- grubbs.test(x=RV$dados, type=20)
+      RV$res_iqr_0 <- IQR.test(x=RV$dados)
+      RV$res_iqr   <- fun_outlier(RV$res_iqr_0, x.data=RV$dados)
 
-      RV$res_dixon <- dixon.test(x=RV$dados, type=0)
+      RV$res_grubbs_10_0 <- grubbs.test(x=RV$dados, type=10)
+      RV$res_grubbs_10   <- fun_outlier(RV$res_grubbs_10_0, x.data=RV$dados)
 
-      # RV$res_iqr <- IQR.test(x=RV$dados)
+      RV$res_grubbs_11_0 <- grubbs.test(x=RV$dados, type=11)
+      RV$res_grubbs_11   <- fun_outlier(RV$res_grubbs_11_0, x.data=RV$dados)
+
+      RV$res_grubbs_20_0 <- grubbs.test(x=RV$dados, type=20)
+      RV$res_grubbs_20   <- fun_outlier(RV$res_grubbs_20_0, x.data=RV$dados)
+
+      RV$res_dixon_0 <- dixon.test(x=RV$dados, type=0)
+      RV$res_dixon   <- fun_outlier(RV$res_dixon_0, x.data=RV$dados)
+
+      RV$res_chisq_0 <- chisq.out.test(x=RV$dados)
+      RV$res_chisq   <- fun_outlier(RV$res_chisq_0, x.data=RV$dados)
 
       shinyjs::show(id="showReportBtn")
       shinyjs::show(id="mainPanel")
@@ -76,84 +90,62 @@ shinyServer(function(input, output, session){
   # Tests #
   #-------#
 
-  output$out_table <- renderFormattable({
+  observe(
+    RV$res_fun_out <- switch(input$outlierTest,
+                             "Intervalo Interquartil"            = RV$res_iqr,
+                             "Grubbs 1 outlier"                  = RV$res_grubbs_10,
+                             "Grubbs 2 outliers"                 = RV$res_grubbs_11,
+                             "Grubbs 2 outliers (lados opostos)" = RV$res_grubbs_20,
+                             "Dixon para outliers"               = RV$res_dixon,
+                             "Qui-quadrado para outliers"        = RV$res_chisq
+    )
+  )
+
+  output$table_results <- renderFormattable({
+  # output$table_results <- function(){
+
     tab_dados <- data.frame(stringsAsFactors=FALSE,
                             Réplica=1:RV$n.dados,
                             Medição=RV$dados, #accounting(RV$dados),
-                            Resultado=c(rep(TRUE, RV$n.dados-1), FALSE)
+                            Resultado=rep(TRUE, RV$n.dados)
     )
 
-    formattable(tab_dados, align=c("c","c","c"), list(
+    RV$tab_test <- RV$res_fun_out$tab_test
+    RV$out.ind  <- RV$res_fun_out$out.ind
+# print(RV$tab_test)
+# print(RV$out.ind)
+    if(!is.null(RV$out.ind)) tab_dados$Resultado[RV$out.ind] <- FALSE
 
-      Réplica = formatter(
-        "span", style = ~ style(color="grey", font.weight="bold")
-      ),
+    # Using kable
+    # kable(tab_dados, format="html") %>%
+    #   kable_styling(full_width=FALSE, position = "center",
+    #                 bootstrap_options=c("hover", "condensed"))
+    # # gsub("<thead>.*</thead>", "", tt) # Remove header
+
+    # Using formattable
+    formattable(tab_dados, align=c("c","c","c"), list(
+      Réplica = formatter("span", style = ~ style(color="grey", font.weight="bold")),
       Medição = color_tile("white", plot_colors[1]),
       Resultado = formatter("span",
                 style = x ~ style(color=ifelse(x, "green", "red")),
                 x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Ok", "Outlier"))
       )
-
-
     ))
+
   })
 
-  output$out_test <- renderPrint({
-
+  output$table_tests <- renderPrint({
+    # req(!is.null(RV$dados))
     if(is.null(RV$dados)){
       return(invisible())
     } else {
-      switch(input$outlierTest,
-             "Intervalo" = IQR.test(x=RV$dados),
-             "Grubbs one" = RV$res_grubbs_10,
-             "Grubbs two" = RV$res_grubbs_11,
-             "Grubbs two (opostos)" = RV$res_grubbs_20,
-             "Dixon" = RV$res_dixon
-      )
+      tab_tests <- kable(RV$tab_test, format="html") %>%
+        kable_styling(bootstrap_options=c("hover", "condensed"),
+                      full_width=FALSE, position = "center") #%>%
+      #gsub("<thead>.*</thead>", "", tt) # Remove first line
+      tab_tests
     }
-  })
 
-
-
-  # IQR
-  output$t_IQR <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      IQR.test(x=RV$dados)
-    }
-  })
-
-  # Grubbs
-  output$t_grubbs_10 <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      RV$res_grubbs_10
-    }
-  })
-  output$t_grubbs_11 <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      RV$res_grubbs_11
-    }
-  })
-  output$t_grubbs_20 <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      RV$res_grubbs_20
-    }
-  })
-
-  # Dixon
-  output$t_dixon <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      RV$res_dixon
-    }
   })
 
   #-------#
@@ -168,8 +160,20 @@ shinyServer(function(input, output, session){
 
       p_name <- "plot_dados"
       assign(x=p_name, envir=.GlobalEnv, value= function(){
-        plot(sort(RV$dados), col=plot_colors[1], pch=19, cex=1.5,
+
+        xx <- RV$dados
+        cores <- rep(plot_colors[1], length(RV$dados))
+        if(!is.null(RV$out.ind)){ cores[RV$out.ind] <- plot_colors[2] }
+
+        plot(xx[order(xx)], col=cores[order(xx)], pch=19, cex=1.5,
              xlab="Dados ordenados", ylab="", main=RV$measu)
+        # points(RV$out.ind[order(xx)])
+
+        if(!is.null(RV$out.ind)){
+          legend("bottomright", pch=c(19,19), col=plot_colors[1:2],
+                 c("Data", "Outlier"), bty="n", cex=1.2, box.col="black")
+        }
+
       })
       get(p_name)()
 
@@ -245,15 +249,21 @@ shinyServer(function(input, output, session){
       # ),
       shinyWidgets::awesomeCheckboxGroup(
         inputId="testsModal", label="Incluir testes:",
-        choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon"),
-        selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon")
+        choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
+                  "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
+                  "Dixon para outliers", "Qui-quadrado para outliers"),
+        selected=c("Intervalo Interquartil", "Grubbs 1 outlier",
+                  "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
+                  "Dixon para outliers", "Qui-quadrado para outliers")
+        # choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square"),
+        # selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square")
       ),
       shinyWidgets::awesomeCheckboxGroup(
-        inputId="diagsModal", label="Incluir Diagnósticos:",
-        choices=c("Histograma", "qqplot", "boxplot"),
-        selected=c("Histograma", "qqplot", "boxplot")
+        inputId="diagsModal", label="Incluir gráficos diagnóstico:",
+        choices=c("Histograma", "QQ-plot", "Boxplot"),
+        selected=c("Histograma", "QQ-plot", "Boxplot")
       ),
-      textAreaInput(inputId="obsModal", label="Observações:", value = "",
+      textAreaInput(inputId="obsModal", label="Observações:", value="",
                     placeholder="Insira aqui comentários gerais."),
       br(),
       shinyWidgets::radioGroupButtons(
@@ -279,19 +289,19 @@ shinyServer(function(input, output, session){
   #
   output$downReportBtn <- downloadHandler(
     filename = function() {
-      paste("relatorio", sep=".",
+      paste("report", sep=".",
             switch(input$format, PDF="pdf", HTML="html", Word="docx")
       )
     },
 
     content = function(file) {
-      src <- normalizePath("relatorio.Rmd")
+      src <- normalizePath("report.Rmd")
       owd <- setwd(tempdir())
       on.exit(setwd(owd))
-      file.copy(from=src, to="relatorio.Rmd", overwrite=TRUE)
+      file.copy(from=src, to="report.Rmd", overwrite=TRUE)
 
       library(rmarkdown)
-      out <- rmarkdown::render(input="relatorio.Rmd",
+      out <- rmarkdown::render(input="report.Rmd",
                                encoding="UTF-8",
                                output_format=switch(input$format,
                                                     PDF=pdf_document(),

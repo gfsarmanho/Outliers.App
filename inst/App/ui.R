@@ -9,6 +9,7 @@ library(shiny)
 library(shinyjs)
 library(shinyWidgets) # Nice inputs/buttons
 library(formattable)  # Nice table
+library(kableExtra)   #
 # library(shinythemes)
 
 library(readxl)       # Read/write .xls, .xlsx files
@@ -17,7 +18,7 @@ library(rmarkdown)    # Report generation
 library(tinytex)      # PDF Report generation
 
 # Load functions - R
-source("R-functions/FUN.R", encoding="utf-8")
+# source("R-functions/FUN.R", encoding="utf-8")
 
 #================#
 # Begin Shiny UI #
@@ -97,28 +98,47 @@ shinyUI(fluidPage(
         div(id="mainPanel",
             tabsetPanel(
 
-              # Outliers ------------------------------------------
+              # Diagnosis panel (Normality, Asymmetry)
+              tabPanel(
+                title="Diagnóstico",
+
+                fluidRow(
+                  column(4, plotOutput(outputId="histogram")),
+                  column(4, plotOutput(outputId="qqplot")),
+                  column(4, plotOutput(outputId="boxplot"))
+                )
+
+              ), #endof tabpanel()
+
+              # Outliers
               tabPanel(
                 title="Outliers",
                 br(),
                 # verbatimTextOutput(outputId="print_dados"),
 
                 fluidRow(
-                  column(2, shinyWidgets::radioGroupButtons(
+                  column(4, shinyWidgets::radioGroupButtons(
                     inputId="outlierTest", label="Selecione o teste:",
                     justified=FALSE, size="normal", direction="vertical", individual=FALSE,
-                    choices=c("Intervalo", "Grubbs one", "Grubbs two",
-                              "Grubbs two (opostos)", "Dixon"),
+                    choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
+                              "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
+                              "Dixon para outliers", "Qui-quadrado para outliers"),
                     checkIcon = list(yes = tags$i(class = "fa fa-check-square",
                                                   style = "color: steelblue"),
                                      no = tags$i(class = "fa fa-square-o",
                                                  style = "color: steelblue"))
                   )),
-                  column(10, plotOutput(outputId="dados"))
+                  # column(8, verbatimTextOutput(outputId="table_tests"))
+                  column(8,
+                         # h3("Teste de Outlier"),
+                         tableOutput(outputId="table_tests")
+                  )
+
                 ),
                 fluidRow(
-                  column(4, formattable::formattableOutput(outputId="out_table", width = "50%")),
-                  column(8, verbatimTextOutput(outputId="out_test"))
+                  column(4, formattable::formattableOutput(outputId="table_results", width="50%")),
+                  # column(4, tableOutput(outputId="table_results")),
+                  column(8, plotOutput(outputId="dados"))
                 )
 
                 # fluidRow(
@@ -129,18 +149,6 @@ shinyUI(fluidPage(
                 #   column(6, verbatimTextOutput(outputId="t_grubbs_11")),
                 #   column(6, verbatimTextOutput(outputId="t_grubbs_20"))
                 # )
-
-              ), #endof tabpanel()
-
-              # Normality ----------------------------------------
-              tabPanel(
-                title="Diagnóstico",
-
-                fluidRow(
-                  column(4, plotOutput(outputId="histogram")),
-                  column(4, plotOutput(outputId="qqplot")),
-                  column(4, plotOutput(outputId="boxplot"))
-                )
 
               ) #endof tabpanel()
 
