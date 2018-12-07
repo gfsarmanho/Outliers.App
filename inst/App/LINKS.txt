@@ -1,4 +1,0 @@
-
-# Reports
-https://shiny.rstudio.com/gallery/download-knitr-reports.html
-https://github.com/rstudio/shiny-examples/tree/master/016-knitr-pdf
