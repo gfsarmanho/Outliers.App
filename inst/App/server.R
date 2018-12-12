@@ -2,7 +2,6 @@
 #==============#
 # Begin server #
 #==============#
-
 shinyServer(function(input, output, session){
 
   # Reactive variables
@@ -72,23 +71,23 @@ shinyServer(function(input, output, session){
     }
   ) #endof observeEvent()
 
-  #------#
-  # Data #
-  #------#
-  output$print_dados <- renderPrint({
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      cat(
-        paste("Dados carregados (n=", RV$n.dados, "):\n",
-                paste(as.character(RV$dados), collapse=", "), sep="")
-      )
-    }
-  })
+  #----------------------------------------------#
+  #                  Data                        #
+  #----------------------------------------------#
+  # output$print_dados <- renderPrint({
+  #   if(is.null(RV$dados)){
+  #     return(invisible())
+  #   } else {
+  #     cat(
+  #       paste("Dados carregados (n=", RV$n.dados, "):\n",
+  #               paste(as.character(RV$dados), collapse=", "), sep="")
+  #     )
+  #   }
+  # })
 
-  #-------#
-  # Tests #
-  #-------#
+  #------------------------------------------------#
+  #                  Tables                        #
+  #------------------------------------------------#
 
   observe(
     RV$res_fun_out <- switch(input$outlierTest,
@@ -101,9 +100,64 @@ shinyServer(function(input, output, session){
     )
   )
 
-  output$table_results <- renderFormattable({
-  # output$table_results <- function(){
+  #------------------------#
+  # TABLE: Normality tests #
+  #------------------------#
+  output$table_norm <- renderFormattable({
 
+    # Functions to be applied
+    fun_norm <- list(shapiro.test, function(x) ks.test(x, "pnorm"),
+                     nortest::lillie.test, nortest::ad.test,
+                     moments::jarque.test)
+    # nortest::cvm.test, nortest::pearson.test, nortest::sf.test
+    res_norm <- sapply(fun_norm, do.call, args = list(RV$dados))
+    res_norm.stats <- sapply(res_norm, with, c(statistic, p.value))
+
+    # Table to be saved
+    tab_norm <- data.frame(
+      "Teste" = c("Shapiro-Wilk", "Kolmogorov-Smirnov (K-S)",
+                  "Lilliefors K-S", "Anderson-Darling", "Jarque-Bera"),
+      # "Cramer-von Mises", "Qui-quadrado de Pearson", "Shapiro-Francia"
+      "Estatística"  = res_norm.stats[1, ] ,
+      "P.valor"      = formattable::scientific( res_norm.stats[2, ] )
+    )
+
+    # Table to be show
+    formattable(tab_norm, align=c("c","c", "c"), list(
+      Teste = formatter("span", style = ~ style(color="grey", font.weight="bold")),
+      "P.valor" = formatter("span", style = x ~ style(color=ifelse(x>=0.05, "green", "red")))
+    ))
+
+  })
+
+  #------------------------#
+  # TABLE: Data Statistics #
+  #------------------------#
+  output$table_stat <- renderFormattable({
+
+    # Table to be saved
+    tab_stat <- data.frame(
+      Medida = c("Mínimo", "1o Quartil", "Mediana", "Média", "3o Quartil", "Máximo",
+                 "Coef. Curtose", "Coef. assimetria"),
+      Valor  = c(summary(RV$dados), moments::kurtosis(RV$dados),
+                 moments::skewness(RV$dados))
+    )
+
+    # Table to be show
+    formattable(tab_stat, align=c("c","c"), list(
+      Medida = formatter("span", style = ~ style(color="grey", font.weight="bold"))
+      #Valor = comma("span")
+    ))
+
+  })
+
+  #------------------------#
+  # TABLE: Outlier results #
+  #------------------------#
+  output$table_results <- renderFormattable({
+    # output$table_results <- function(){
+
+    # Table to be saved
     tab_dados <- data.frame(stringsAsFactors=FALSE,
                             Réplica=1:RV$n.dados,
                             Medição=RV$dados, #accounting(RV$dados),
@@ -112,28 +166,29 @@ shinyServer(function(input, output, session){
 
     RV$tab_test <- RV$res_fun_out$tab_test
     RV$out.ind  <- RV$res_fun_out$out.ind
-# print(RV$tab_test)
-# print(RV$out.ind)
     if(!is.null(RV$out.ind)) tab_dados$Resultado[RV$out.ind] <- FALSE
 
-    # Using kable
+    # Table to be show (using kable)
     # kable(tab_dados, format="html") %>%
     #   kable_styling(full_width=FALSE, position = "center",
     #                 bootstrap_options=c("hover", "condensed"))
     # # gsub("<thead>.*</thead>", "", tt) # Remove header
 
-    # Using formattable
+    # Table to be show
     formattable(tab_dados, align=c("c","c","c"), list(
       Réplica = formatter("span", style = ~ style(color="grey", font.weight="bold")),
-      Medição = color_tile("white", plot_colors[1]),
+      # Medição = color_tile("white", plot_colors[1]),
       Resultado = formatter("span",
-                style = x ~ style(color=ifelse(x, "green", "red")),
-                x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Ok", "Outlier"))
+                            style = x ~ style(color=ifelse(x, "green", "red")),
+                            x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Ok", "Outlier"))
       )
     ))
 
   })
 
+  #------------------------#
+  # TABLE: Outlier results #
+  #------------------------#
   output$table_tests <- renderPrint({
     # req(!is.null(RV$dados))
     if(is.null(RV$dados)){
@@ -148,9 +203,9 @@ shinyServer(function(input, output, session){
 
   })
 
-  #-------#
-  # Plots #
-  #-------#
+  #-----------------------------------------------#
+  #                  Plots                        #
+  #-----------------------------------------------#
 
   # Plot - data
   output$dados <- renderPlot({
@@ -180,7 +235,9 @@ shinyServer(function(input, output, session){
     }
   })
 
-  # Plot - boxplot
+  #---------------#
+  # PLOT: BoxPlot #
+  #---------------#
   output$boxplot <- renderPlot({
     if(is.null(RV$dados)){
       return()
@@ -194,7 +251,9 @@ shinyServer(function(input, output, session){
     }
   })
 
-  # Plot - histogram
+  #-----------------#
+  # PLOT: Histogram #
+  #-----------------#
   output$histogram <- renderPlot({
     if(is.null(RV$dados)){
       return()
@@ -213,7 +272,9 @@ shinyServer(function(input, output, session){
     }
   })
 
-  # Plot - qqPlot
+  #--------------#
+  # PLOT: QQplot #
+  #--------------#
   output$qqplot <- renderPlot({
     if(is.null(RV$dados)){
       return()
@@ -232,61 +293,60 @@ shinyServer(function(input, output, session){
     }
   })
 
-  # shapiro.test(x)
-  # qqnorm(, main="Normal QQ Plot")
-  # qqline(, col="")
 
+  #-----------------------------------------------#
+  #                  REPORT                       #
+  #-----------------------------------------------#
+  # Modal
   observeEvent(input$modalReportBtn, {
 
     showModal(modalDialog(easyClose=TRUE, footer=NULL,
-      title = "Informações para gerar relatório técnico",
+                          title = "Informações para gerar relatório técnico",
 
-      textInput(inputId="personModal", label="Responsável"),
+                          textInput(inputId="personModal", label="Responsável"),
 
-      # checkboxGroupButtons(inputId="testsModal", label="Incluir testes:",
-      #                      choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
-      #                      selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
-      # ),
-      shinyWidgets::awesomeCheckboxGroup(
-        inputId="testsModal", label="Incluir testes:",
-        choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
-                  "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
-                  "Dixon para outliers", "Qui-quadrado para outliers"),
-        selected=c("Intervalo Interquartil", "Grubbs 1 outlier",
-                  "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
-                  "Dixon para outliers", "Qui-quadrado para outliers")
-        # choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square"),
-        # selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square")
-      ),
-      shinyWidgets::awesomeCheckboxGroup(
-        inputId="diagsModal", label="Incluir gráficos diagnóstico:",
-        choices=c("Histograma", "QQ-plot", "Boxplot"),
-        selected=c("Histograma", "QQ-plot", "Boxplot")
-      ),
-      textAreaInput(inputId="obsModal", label="Observações:", value="",
-                    placeholder="Insira aqui comentários gerais."),
-      br(),
-      shinyWidgets::radioGroupButtons(
-        inputId="format", label="Formato do documento",
-        choices=c("PDF", "HTML", "Word"), selected="PDF",
-        checkIcon = list(yes = tags$i(class = "fa fa-check-square",
-                                      style = "color: steelblue"),
-                         no = tags$i(class = "fa fa-square-o",
-                                     style = "color: steelblue"))
-      ),
-      # icon=icon(name="file-pdf", lib="font-awesome")
-      # icon=icon(name="file-word", lib="font-awesome")
-      # icon=icon(name="html5", lib="font-awesome")
+                          # checkboxGroupButtons(inputId="testsModal", label="Incluir testes:",
+                          #                      choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
+                          #                      selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
+                          # ),
+                          shinyWidgets::awesomeCheckboxGroup(
+                            inputId="testsModal", label="Incluir testes:",
+                            choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
+                                      "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
+                                      "Dixon para outliers", "Qui-quadrado para outliers"),
+                            selected=c("Intervalo Interquartil", "Grubbs 1 outlier",
+                                       "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
+                                       "Dixon para outliers", "Qui-quadrado para outliers")
+                            # choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square"),
+                            # selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square")
+                          ),
+                          shinyWidgets::awesomeCheckboxGroup(
+                            inputId="diagsModal", label="Incluir gráficos diagnóstico:",
+                            choices=c("Histograma", "QQ-plot", "Boxplot"),
+                            selected=c("Histograma", "QQ-plot", "Boxplot")
+                          ),
+                          textAreaInput(inputId="obsModal", label="Observações:", value="",
+                                        placeholder="Insira aqui comentários gerais."),
+                          br(),
+                          shinyWidgets::radioGroupButtons(
+                            inputId="format", label="Formato do documento",
+                            choices=c("PDF", "HTML", "Word"), selected="PDF",
+                            checkIcon = list(yes = tags$i(class = "fa fa-check-square",
+                                                          style = "color: steelblue"),
+                                             no = tags$i(class = "fa fa-square-o",
+                                                         style = "color: steelblue"))
+                          ),
+                          # icon=icon(name="file-pdf", lib="font-awesome")
+                          # icon=icon(name="file-word", lib="font-awesome")
+                          # icon=icon(name="html5", lib="font-awesome")
 
-      downloadButton(outputId="downReportBtn", label="Gerar relatório",
-                      class="btn-default") #style="background-color: black; color: white;")
-
-    ))
+                          downloadButton(outputId="downReportBtn", label="Gerar relatório",
+                                         class="btn-default") #style="background-color: black; color: white;")
+    )) #endofshowModal()
 
   })
 
-
-  #
+  # Donload report mechanism
   output$downReportBtn <- downloadHandler(
     filename = function() {
       paste("report", sep=".",

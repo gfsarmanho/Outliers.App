@@ -17,6 +17,9 @@ library(outliers)     # Functions:
 library(rmarkdown)    # Report generation
 library(tinytex)      # PDF Report generation
 
+library(moments)      # Moments and Jarque-Bera normality test
+library(nortest)      # Normality tests
+
 # Load functions - R
 # source("R-functions/FUN.R", encoding="utf-8")
 
@@ -106,6 +109,11 @@ shinyUI(fluidPage(
                   column(4, plotOutput(outputId="histogram")),
                   column(4, plotOutput(outputId="qqplot")),
                   column(4, plotOutput(outputId="boxplot"))
+                ),
+                fluidRow(
+                  column(3, formattable::formattableOutput(outputId="table_stat")),
+                  column(5, formattable::formattableOutput(outputId="table_norm")),
+                  column(4)
                 )
 
               ), #endof tabpanel()
