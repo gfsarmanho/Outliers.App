@@ -19,6 +19,7 @@ library(tinytex)      # PDF Report generation
 
 library(moments)      # Moments and Jarque-Bera normality test
 library(nortest)      # Normality tests
+library(robustbase)   # Adjusted boxplot
 
 # Load functions - R
 # source("R-functions/FUN.R", encoding="utf-8")
@@ -58,7 +59,8 @@ shinyUI(fluidPage(
         ))
       ),
 
-      shinyjs::disabled(
+      #shinyjs::disabled(
+      shinyjs::hidden(
         div(id="insertManualData",
             shinyWidgets::awesomeCheckbox( #checkboxInput( #
               inputId="checkManual", label="Inserir dados manualmente", value=FALSE
@@ -129,8 +131,9 @@ shinyUI(fluidPage(
                     inputId="outlierTest", label="Selecione o teste:",
                     justified=FALSE, size="normal", direction="vertical", individual=FALSE,
                     choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
-                              "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
-                              "Dixon para outliers", "Qui-quadrado para outliers"),
+                              "Grubbs 2 outliers (lados opostos)", "Grubbs 2 outliers (mesma cauda)",
+                              "Dixon para outliers", "Qui-quadrado para outliers",
+                              "Boxplot ajustado"),
                     checkIcon = list(yes = tags$i(class = "fa fa-check-square",
                                                   style = "color: steelblue"),
                                      no = tags$i(class = "fa fa-square-o",
@@ -139,24 +142,18 @@ shinyUI(fluidPage(
                   # column(8, verbatimTextOutput(outputId="table_tests"))
                   column(8,
                          # h3("Teste de Outlier"),
-                         tableOutput(outputId="table_tests")
+                         plotOutput(outputId="dados")
                   )
 
                 ),
                 fluidRow(
                   column(4, formattable::formattableOutput(outputId="table_results", width="50%")),
                   # column(4, tableOutput(outputId="table_results")),
-                  column(8, plotOutput(outputId="dados"))
+                  column(1),
+                  column(4, formattable::formattableOutput(outputId="table_tests")),
+                  # column(6, tableOutput(outputId="table_tests")),
+                  column(3)
                 )
-
-                # fluidRow(
-                #   column(6, verbatimTextOutput(outputId="t_IQR")),
-                #   column(6, verbatimTextOutput(outputId="t_grubbs_10"))
-                # ),
-                # fluidRow(
-                #   column(6, verbatimTextOutput(outputId="t_grubbs_11")),
-                #   column(6, verbatimTextOutput(outputId="t_grubbs_20"))
-                # )
 
               ) #endof tabpanel()
 

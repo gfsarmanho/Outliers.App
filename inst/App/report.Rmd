@@ -1,0 +1,117 @@
+---
+title: Identificação de Valores Discrepantes
+
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{framed}
+---
+
+\colorlet{shadecolor}{gray!10}
+
+`r if(input$format != "PDF") {"<!--"}`
+\begin{shaded}
+  \textbf{Responsável:} `r input$personModal`. \\
+  \textbf{Data do relatório:} `r format(Sys.time(), "%d-%m-%Y")`, às `r format(Sys.time(), "%H:%M")`. \\
+  \textbf{Revisor:} \\
+  \textbf{Data de revisão:} 
+\end{shaded}
+`r if(input$format != "PDF") {"-->"}`
+
+`r if(input$format != "HTML") {"<!--"}`
+<div style="background-color:gray"> 
+**Responsável:** 	`r input$personModal`. \
+**Data do relatório:** `r format(Sys.time(), "%d-%m-%Y")`, às `r format(Sys.time(), "%H:%M")`. \
+**Revisor:** \
+**Data de revisão:**
+</div>
+`r if(input$format != "HTML") {"-->"}`
+
+
+***
+
+## 1. Dados carregados
+
+```{r printdados, echo=FALSE}
+RV$dados
+```
+
+***
+
+## 2. Diagnóstico 
+
+### Gráficos
+
+```{r plotsTodos, echo=FALSE, fig.height=5, fig.width=15}
+par(mfrow=c(1,3), mar=c(4,4,4,1), oma=c(0.5,0.5,0.5,0))
+if("Histograma" %in% input$diagsModal){plot_histograma() }
+if("QQ-plot" %in% input$diagsModal){ plot_boxplot() }
+if("Boxplot" %in% input$diagsModal){ plot_qqplot() }
+par(mfrow=c(1,1))
+```
+
+### Tabelas
+```{r tab_outtest, echo=FALSE, fig.pos='h', fig.align='center'}
+RV$tab_test
+```
+
+***
+
+## 3. Testes de Outliers
+
+`r if(input$testsModal %in% "Intervalo Interquartil") {"<!--"}`
+### Amplitude Interquartil (Regra de Tukey)
+```{r iqr, echo=FALSE}
+RV$res_iqr
+```
+`r if(input$testsModal %in% "Intervalo Interquartil") {"-->"}`
+
+
+`r if(input$testsModal %in% "Grubbs 1 outlier") {"<!--"}`
+### Teste de Grubbs 1
+```{r grubbs10, echo=FALSE}
+RV$res_grubbs_10
+```
+`r if(input$testsModal %in% "Grubbs 1 outlier") {"-->"}`
+
+
+`r if(input$testsModal %in% "Grubbs 2 outliers (lados opostos)") {"<!--"}`
+### Teste de Grubbs 2 outliers (lados opostos)
+```{r grubbs11, echo=FALSE}
+RV$res_grubbs_11
+```
+`r if(input$testsModal %in% "Grubbs 2 outliers (lados opostos)") {"-->"}`
+
+
+`r if(input$testsModal %in% "Grubbs 2 outliers (mesma cauda)") {"<!--"}`
+### Teste de Grubbs 2 outliers (mesma cauda)
+```{r grubbs20, echo=FALSE}
+RV$res_grubbs_20
+```
+`r if(input$testsModal %in% "Grubbs 2 outliers (mesma cauda)") {"-->"}`
+
+
+`r if(input$testsModal %in% "Dixon para outliers") {"<!--"}`
+### Teste de Dixon para outliers
+```{r dixon, echo=FALSE}
+RV$res_dixon
+```
+`r if(input$testsModal %in% "Dixon para outliers") {"-->"}`
+
+
+`r if(input$testsModal %in% "Qui-quadrado para outliers") {"<!--"}`
+### Teste Qui-quadrado
+```{r chisq, echo=FALSE}
+RV$res_chisq
+```
+`r if(input$testsModal %in% "Qui-quadrado para outliers") {"-->"}`
+
+
+`r if(input$testsModal %in% "Boxplot ajustado") {"<!--"}`
+### Teste de Boxplot ajustado
+```{r adj, echo=FALSE}
+RV$res_adj
+```
+`r if(input$testsModal %in% "Boxplot ajustado") {"-->"}`
+
+***
+

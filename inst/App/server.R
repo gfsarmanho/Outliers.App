@@ -18,7 +18,9 @@ shinyServer(function(input, output, session){
     res_grubbs_11 = NULL,
     res_grubbs_20 = NULL,
     res_dixon     = NULL,
-    res_chisq     = NULL
+    res_chisq     = NULL,
+
+    res_adj       = NULL
   )
 
   observeEvent(
@@ -65,6 +67,9 @@ shinyServer(function(input, output, session){
       RV$res_chisq_0 <- chisq.out.test(x=RV$dados)
       RV$res_chisq   <- fun_outlier(RV$res_chisq_0, x.data=RV$dados)
 
+      RV$res_adj_0 <- adjbox.test(x=RV$dados)
+      RV$res_adj   <- fun_outlier(RV$res_adj_0, x.data=RV$dados)
+
       shinyjs::show(id="showReportBtn")
       shinyjs::show(id="mainPanel")
 
@@ -93,10 +98,11 @@ shinyServer(function(input, output, session){
     RV$res_fun_out <- switch(input$outlierTest,
                              "Intervalo Interquartil"            = RV$res_iqr,
                              "Grubbs 1 outlier"                  = RV$res_grubbs_10,
-                             "Grubbs 2 outliers"                 = RV$res_grubbs_11,
-                             "Grubbs 2 outliers (lados opostos)" = RV$res_grubbs_20,
+                             "Grubbs 2 outliers (lados opostos)" = RV$res_grubbs_11,
+                             "Grubbs 2 outliers (mesma cauda)"   = RV$res_grubbs_20,
                              "Dixon para outliers"               = RV$res_dixon,
-                             "Qui-quadrado para outliers"        = RV$res_chisq
+                             "Qui-quadrado para outliers"        = RV$res_chisq,
+                             "Boxplot ajustado"                  = RV$res_adj
     )
   )
 
@@ -186,23 +192,30 @@ shinyServer(function(input, output, session){
 
   })
 
-  #------------------------#
-  # TABLE: Outlier results #
-  #------------------------#
-  output$table_tests <- renderPrint({
-    # req(!is.null(RV$dados))
-    if(is.null(RV$dados)){
-      return(invisible())
-    } else {
-      tab_tests <- kable(RV$tab_test, format="html") %>%
-        kable_styling(bootstrap_options=c("hover", "condensed"),
-                      full_width=FALSE, position = "center") #%>%
-      #gsub("<thead>.*</thead>", "", tt) # Remove first line
-      tab_tests
-    }
+  #----------------------#
+  # TABLE: Outlier Tests #
+  #----------------------#
+  # output$table_tests <- renderPrint({
+  #   # req(!is.null(RV$dados))
+  #   if(is.null(RV$dados)){
+  #     return(invisible())
+  #   } else {
+  #     tab_tests <- kable(RV$tab_test, format="html") %>%
+  #       kable_styling(bootstrap_options=c("hover", "condensed"),
+  #                     full_width=FALSE, position = "center") #%>%
+  #     #gsub("<thead>.*</thead>", "", tt) # Remove first line
+  #     tab_tests
+  #   }
+  # })
 
+  output$table_tests <- renderFormattable({
+
+    # RV$tab_test$Valor <- digits(x=RV$tab_test$Valor, digits=4, format="f")
+
+    formattable(RV$tab_test, align=c("l","r"), list(
+    "Parâmetro" = formatter("span", style = ~ style(color="grey", font.weight="bold"))
+    ))
   })
-
   #-----------------------------------------------#
   #                  Plots                        #
   #-----------------------------------------------#
@@ -304,19 +317,17 @@ shinyServer(function(input, output, session){
                           title = "Informações para gerar relatório técnico",
 
                           textInput(inputId="personModal", label="Responsável"),
-
-                          # checkboxGroupButtons(inputId="testsModal", label="Incluir testes:",
-                          #                      choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs"),
-                          #                      selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs")
-                          # ),
                           shinyWidgets::awesomeCheckboxGroup(
                             inputId="testsModal", label="Incluir testes:",
                             choices=c("Intervalo Interquartil", "Grubbs 1 outlier",
-                                      "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
-                                      "Dixon para outliers", "Qui-quadrado para outliers"),
-                            selected=c("Intervalo Interquartil", "Grubbs 1 outlier",
-                                       "Grubbs 2 outliers", "Grubbs 2 outliers (lados opostos)",
-                                       "Dixon para outliers", "Qui-quadrado para outliers")
+                                      "Grubbs 2 outliers (lados opostos)", "Grubbs 2 outliers (mesma cauda)",
+                                      "Dixon para outliers", "Qui-quadrado para outliers",
+                                      "Boxplot ajustado"),
+                            selected=c("Intervalo Interquartil")
+                                       # "Grubbs 1 outlier",
+                                       # "Grubbs 2 outliers (lados opostos)", "Grubbs 2 outliers (mesma cauda)",
+                                       # "Dixon para outliers", "Qui-quadrado para outliers",
+                                       # "Boxplot ajustado")
                             # choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square"),
                             # selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square")
                           ),
