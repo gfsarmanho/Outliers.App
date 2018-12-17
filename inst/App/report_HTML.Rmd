@@ -1,0 +1,282 @@
+---
+fontsize: 11pt
+mainfont: Arial
+output:
+  html_document:
+    number_sections: true
+---
+
+```{r global_options, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE)
+options(Encoding="UTF-8")
+``` 
+
+| <!-- --> | <!--                   --> | <!-- --> | <!-- --> |
+|----------|----------------------------|----------|----------|
+| <img src="logo.png" width="75"/> | **IDENTIFICAÇÃO DE VALORES DISCREPANTES** | **XXXX**<br>**XXXX**<br>**XXXX** | **XXXX** |
+| **XXXX** | **XXXX** | **XXXX:** | **XXXX** |
+| <!-- --> | <!--                   --> | <!-- --> | <!-- --> |
+
+`r if(input$format != "HTML") {"<!--"}`
+<div style="background-color:#E0E0E0">
+**Responsável:** 	`r input$personModal`. \
+**Data do relatório:** `r format(Sys.time(), "%d-%m-%Y")`, às `r format(Sys.time(), "%H:%M")`. \
+**Revisor:** \
+**Data de revisão:**
+</div>
+`r if(input$format != "HTML") {"-->"}`
+
+***
+
+`r if(length(input$diagsPlotModal)==0 & length(input$diagsTableModal)==0) {"<!--"}`
+## Diagnóstico 
+
+`r if(length(input$diagsPlotModal)==0) {"<!--"}`
+### Gráficos
+
+```{r plotsTodos, fig.height=5, fig.width=15}
+n <- ifelse(length(input$diagsPlotModal)==0, 1, length(input$diagsPlotModal))
+par(mfrow=c(1,n), mar=c(4,4,4,1), oma=c(0.5,0.5,0.5,0))
+if("Histograma" %in% input$diagsPlotModal){ plot_histograma() }
+if("Boxplot"    %in% input$diagsPlotModal){ plot_qqplot() }
+if("QQ-plot"    %in% input$diagsPlotModal){ plot_boxplot() }
+par(mfrow=c(1,1))
+```
+`r if(length(input$diagsPlotModal)==0) {"-->"}`
+
+
+`r if(length(input$diagsTableModal)==0) {"<!--"}`
+### Tabelas
+
+```{r, results="asis"}
+library(knitr)
+t1 <- kableExtra::kable(RVTAB$tab_summary, format="html", output=FALSE,
+                        caption="Sumário") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+t2 <- kableExtra::kable(RVTAB$tab_normtest, format="html", output=FALSE,
+                  caption="Testes de Normalidade") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+t3 <- kableExtra::kable(RVTAB$tab_stats, format="html", output=FALSE,
+                  caption="Assimetria e Curtose") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat(c("<table class='container'><tr valign='top'><td>", t1, "</td>", "<td>", t2, "</td>", "</td>", "<td>", t3, "</td></tr></table>"), sep = "")
+```
+`r if(length(input$diagsTableModal)==0) {"-->"}`
+
+`r if(length(input$diagsPlotModal)==0 & length(input$diagsTableModal)==0) {"-->"}`
+
+
+## Testes de Outliers
+
+`r if(!{"Intervalo Interquartil" %in% input$testsModal}) {"<!--"}`
+### Amplitude Interquartil (Regra de Tukey)
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_grubbs_10$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_grubbs_10$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Intervalo Interquartil" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Grubbs 2 outliers (lados opostos)" %in% input$testsModal}) {"<!--"}`
+### Teste de Grubbs 2 outliers (lados opostos)
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_grubbs_11$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_grubbs_11$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Grubbs 2 outliers (lados opostos)" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Grubbs 2 outliers (mesma cauda)" %in% input$testsModal}) {"<!--"}`
+### Teste de Grubbs 2 outliers (mesma cauda)
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_grubbs_20$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_grubbs_20$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Grubbs 2 outliers (mesma cauda)" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Dixon para outliers" %in% input$testsModal}) {"<!--"}`
+### Teste de Dixon para outliers
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_dixon$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_dixon$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Dixon para outliers" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Qui-quadrado para outliers" %in% input$testsModal}) {"<!--"}`
+### Teste Qui-quadrado
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_chisq$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_chisq$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Qui-quadrado para outliers" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Boxplot ajustado" %in% input$testsModal}) {"<!--"}`
+### Teste de Boxplot ajustado
+```{r, results="asis", out.extra=""}
+library(kableExtra)
+tab_outres2      <- RV$res_adj$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex")
+
+cat("<table class='container'><tr valign='top'>")
+cat("<td>")
+kableExtra::kable(tab_outres2, format="html", output=FALSE,
+                  caption="Resultado outliers") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</td>")
+cat("<td>")
+cat("<table>")
+cat("<tr><td>")
+plot_dados()
+cat("</tr></td>")
+cat("<tr><td>")
+kableExtra::kable(RV$res_adj$tab_outtest, format="html", output=FALSE,
+                  caption="Parâmetros do Teste") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width=FALSE, position="center")
+cat("</tr></td>")
+cat("</table>")
+cat("</td>")
+cat("</tr></table>")
+```
+`r if(!{"Boxplot ajustado" %in% input$testsModal}) {"-->"}`
+
+***
+
+<center>
+Observações
+</center>
+```{r, results='asis', comment=NA}
+cat("<textarea rows='6' cols='150'>")
+if(length(input$obsModal)>0) {input$obsModal} else {return(NULL)}
+cat("</textarea>")
+```
+

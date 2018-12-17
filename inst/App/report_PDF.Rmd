@@ -1,0 +1,318 @@
+---
+fontsize: 11pt
+mainfont: Arial
+geometry: "left=2cm,right=1cm,top=2cm,bottom=2cm"
+output:
+  pdf_document:
+    number_sections: true
+header-includes:
+  - \usepackage{framed}
+  - \usepackage[table]{xcolor}
+  - \usepackage{floatrow}
+  - \usepackage{subfig}
+  - \floatsetup{valign=t}
+  - \usepackage{multirow}
+  - \usepackage{array}
+  - \usepackage{booktabs}
+---
+
+```{r global_options, include=FALSE}
+library(knitr)
+opts_chunk$set(echo=FALSE)
+options(Encoding="UTF-8")
+``` 
+
+\colorlet{shadecolor}{gray!10} <!--- rgb(210/256,210/256,210/256) --> 
+\newfloatcommand{btabbox}{table}
+
+\begin{tabular}{| m{3cm} | p{7cm} | p{4cm} | p{3cm}  |}
+      \hline
+      \multirow{4}{*}{\includegraphics[width=0.1\textwidth]{logo.png}} &
+      \multirow{4}{\linewidth}{IDENTIFICAÇÃO DE VALORES \newline DISCREPANTES} &
+      XXXX & XXXX \\
+      \cline{3-4}
+      & & XXXX & XXXX \\
+      & & XXXX & \\
+      & & & \\
+      \hline
+      XXXX & XXXX & XXXX & XXXX \\
+      \hline
+\end{tabular}
+
+
+`r if(input$format != "PDF") {"<!--"}`
+\begin{shaded}
+  \textbf{Responsável:} `r input$personModal`. \\
+  \textbf{Data do relatório:} `r format(Sys.time(), "%d-%m-%Y")`, às `r format(Sys.time(), "%H:%M")`. \\
+  \\
+  \textbf{Revisor:} \\
+  \\
+  \textbf{Data de revisão:} 
+\end{shaded}
+`r if(input$format != "PDF") {"-->"}`
+
+***
+
+`r if(length(input$diagsPlotModal)==0 & length(input$diagsTableModal)==0) {"<!--"}`
+## Diagnóstico 
+
+`r if(length(input$diagsPlotModal)==0) {"<!--"}`
+### Gráficos
+
+```{r plotsTodos, fig.height=5, fig.width=15}
+n <- ifelse(length(input$diagsPlotModal)==0, 1, length(input$diagsPlotModal))
+par(mfrow=c(1,n), mar=c(4,4,4,1), oma=c(0.5,0.5,0.5,0))
+if("Histograma" %in% input$diagsPlotModal){ plot_histograma() }
+if("Boxplot"    %in% input$diagsPlotModal){ plot_qqplot() }
+if("QQ-plot"    %in% input$diagsPlotModal){ plot_boxplot() }
+par(mfrow=c(1,1))
+```
+`r if(length(input$diagsPlotModal)==0) {"-->"}`
+
+`r if(length(input$diagsTableModal)==0) {"<!--"}`
+### Tabelas
+
+\thisfloatsetup{subfloatrowsep=none, heightadjust=object}
+\begin{figure}[H]
+  \tiny
+  \begin{subfloatrow}
+    \btabbox[.333\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RVTAB$tab_summary, format="latex", booktabs=TRUE)
+```
+    }{\caption{Sumário}}%
+    \btabbox[.333\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RVTAB$tab_normtest, format="latex", booktabs=TRUE)
+```
+    }{\caption{Testes de Normalidade}}%
+    \btabbox[.333\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RVTAB$tab_stats, format="latex", booktabs=TRUE)
+```
+    }{\caption{Assimetria e Curtose}}%
+  \end{subfloatrow}
+\end{figure}
+
+`r if(length(input$diagsTableModal)==0) {"-->"}`
+
+\newpage
+`r if(length(input$diagsPlotModal)==0 & length(input$diagsTableModal)==0) {"-->"}`
+
+## Testes de Outliers
+
+`r if(!{"Intervalo Interquartil" %in% input$testsModal}) {"<!--"}`
+### Teste de Boxplot (Método de Tukey)
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_iqr$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Dados e diagnóstico de outliers}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Gráfico dos dados e possíveis outliers}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_iqr$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Teste de Outlier}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Intervalo Interquartil" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Grubbs 1 outlier" %in% input$testsModal}) {"<!--"}`
+### Teste de Grubbs 1
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_grubbs_10$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Resultado outliers}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_grubbs_10$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Parâmetros do Teste}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Grubbs 1 outlier" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Grubbs 2 outliers (lados opostos)" %in% input$testsModal}) {"<!--"}`
+### Teste de Grubbs 2 outliers (lados opostos)
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_grubbs_11$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Table 1}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_grubbs_11$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Table 2}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Grubbs 2 outliers (lados opostos)" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Grubbs 2 outliers (mesma cauda)" %in% input$testsModal}) {"<!--"}`
+### Teste de Grubbs 2 outliers (mesma cauda)
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_grubbs_20$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Table 1}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_grubbs_20$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Table 2}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Grubbs 2 outliers (mesma cauda)" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Dixon para outliers" %in% input$testsModal}) {"<!--"}`
+### Teste de Dixon para outliers
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_dixon$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Table 1}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_dixon$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Table 2}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Dixon para outliers" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Qui-quadrado para outliers" %in% input$testsModal}) {"<!--"}`
+### Teste Qui-quadrado
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_chisq$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Table 1}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_chisq$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Table 2}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Qui-quadrado para outliers" %in% input$testsModal}) {"-->"}`
+
+
+`r if(!{"Boxplot ajustado" %in% input$testsModal}) {"<!--"}`
+### Teste de Boxplot ajustado
+\begin{figure}[H]
+  \thisfloatsetup{valign=t}
+  \begin{subfloatrow}[2]%
+    \btabbox[.33\textwidth]{%
+```{r, fig.align="center"}
+tab_outres2      <- RV$res_adj$tab_outres
+tab_outres2[, 3] <- ifelse(tab_outres2[, 3], "Ok", "Outlier")
+kableExtra::kable(tab_outres2, format="latex", booktabs=TRUE)
+```
+    }{\caption{Table 1}}
+    \vbox{%
+      \ffigbox[.66\textwidth]{%
+```{r, fig.align="center"}
+plot_dados()
+```
+      }{\caption{Plot}}\vspace{10pt}
+      \btabbox[.66\textwidth]{%
+```{r, fig.align="center"}
+kableExtra::kable(RV$res_adj$tab_outtest, format="latex", booktabs=TRUE)
+```
+      }{\caption{Table 2}}
+    }%
+  \end{subfloatrow}
+\end{figure}
+`r if(!{"Boxplot ajustado" %in% input$testsModal}) {"-->"}`
+
+***
+
+\center Observações \center
+
+\framebox[\textwidth]{
+  \begin{minipage}
+    [t][0.2\textwidth]%
+    [t]{\textwidth}%
+
+  `r if(length(input$obsModal)>0) {input$obsModal} else {return(NULL)}`
+  
+  \end{minipage}
+}

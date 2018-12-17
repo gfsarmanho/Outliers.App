@@ -364,7 +364,8 @@ shinyServer(function(input, output, session){
                           br(),
                           shinyWidgets::radioGroupButtons(
                             inputId="format", label="Formato do documento",
-                            choices=c("PDF", "HTML", "Word"), selected="PDF",
+                            choices=c("PDF", "HTML"), #, "Word"),
+                            selected="PDF",
                             checkIcon = list(yes = tags$i(class = "fa fa-check-square",
                                                           style = "color: steelblue"),
                                              no = tags$i(class = "fa fa-square-o",
@@ -390,17 +391,16 @@ shinyServer(function(input, output, session){
 
     content = function(file) {
       # formato <- switch(input$format, PDF="pdf", HTML="html", Word="docx")
-      # src <- normalizePath(paste("report_", input$format, ".Rmd"))
+      report_name <- paste("report_", input$format, ".Rmd", sep="")
 
-      src <- normalizePath("report.Rmd")
+      src <- normalizePath(report_name)
       owd <- setwd(tempdir())
       on.exit(setwd(owd))
-      file.copy(from=src, to="report.Rmd", overwrite=TRUE)
-      # file.copy(from=src, to=paste("report_", input$format, ".Rmd"), overwrite=TRUE)
+      file.copy(from=src, to=report_name, overwrite=TRUE)
 
       library(rmarkdown)
       # out <- rmarkdown::render(input=paste("report_", input$format, ".Rmd"),
-      out <- rmarkdown::render(input="report.Rmd",
+      out <- rmarkdown::render(input=report_name,
                                encoding="UTF-8",
                                output_format=switch(input$format,
                                                     PDF=pdf_document(),
