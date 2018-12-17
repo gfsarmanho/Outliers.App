@@ -1,5 +1,5 @@
 # Outliers.App
-R package containing Shiny App for outliers analysis. Online version: https://gfsarmanho.shinyapps.io/OutliersApp/
+R package containing Shiny App for outliers analysis.
 
 ## Instalation
 
