@@ -127,30 +127,41 @@ fun_outlier <- function (x, x.data, language="PT", alpha=0.05){
   # Tabela
   if(x$method %in% c("Interquartile rule for outlier detection",
                      "Adjusted Boxplot for Outlier detection")){
-    tab_test <- data.frame(Parameter=NA, Value=c(x$q25, x$q75, x$iqr, x$LI, x$LS,
-                                                 paste(res$out, collapse=", ")))
+    tab_outtest <- data.frame(Parameter=NA, Value=c(x$q25, x$q75, x$iqr, x$LI, x$LS,
+                                                    paste(res$out, collapse=", ")))
     if(language=="PT"){
-      tab_test$Parameter <- c("1o Quartil - Q1 (25%)", "3o Quartil - Q3 (75%)",
-                           "Amplitude Interquartil (IIQ=Q3-Q1)", "Limite Inferior",
+      tab_outtest$Parameter <- c("1o Quartil - Q1 (25%)", "3o Quartil - Q3 (75%)",
+                           "Amplitude Interquartil", "Limite Inferior",
                            "Limite Superior", "Outlier(s)")
-      names(tab_test) <- c("Parâmetro", "Valor")
+      names(tab_outtest) <- c("Parâmetro", "Valor")
     } else {
-      tab_test$Parameter <- c("Parameter", "1st Quartile - Q1 (25%)", "3rd Quartile - Q3 (75%)",
+      tab_outtest$Parameter <- c("Parameter", "1st Quartile - Q1 (25%)", "3rd Quartile - Q3 (75%)",
                            "interquartile range", "Lower Limit",
                            "Upper Limit", "Outlier(s)")
     }
   } else {
-    tab_test <- data.frame(Parameter=NA,
+    tab_outtest <- data.frame(Parameter=NA,
                            Value=c(res$test.stat, res$pval, res$out))
     if(language=="PT"){
-      tab_test$Parameter <- c("Estatística do teste", "P-valor", "Outlier(s)")
-      names(tab_test) <- c("Parâmetro", "Valor")
+      tab_outtest$Parameter <- c("Estatística do teste", "P-valor", "Outlier(s)")
+      names(tab_outtest) <- c("Parâmetro", "Valor")
     } else {
-      tab_test$Parameter <- c("Statistic", "P-value", "Outlier(s)")
+      tab_outtest$Parameter <- c("Statistic", "P-value", "Outlier(s)")
     }
   }
 
-  res$tab_test <- tab_test
+  res$tab_outtest <- tab_outtest
+
+  # Create table with measuraments and outliers
+  tab_outres <- data.frame(stringsAsFactors=FALSE,
+                          Replicate   = 1:length(x.data),
+                          Measurement = round(x.data, 4),
+                          Result      = rep(TRUE, length(x.data))
+  )
+  if(!is.null(res$out.ind)) tab_outres$Result[res$out.ind] <- FALSE
+  if(language=="PT") names(tab_outres) <- c("Réplica", "Medição", "Resultado")
+
+  res$tab_outres <- tab_outres
 
   # Return
   return(invisible(res))

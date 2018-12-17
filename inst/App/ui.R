@@ -9,8 +9,7 @@ library(shiny)
 library(shinyjs)
 library(shinyWidgets) # Nice inputs/buttons
 library(formattable)  # Nice table
-library(kableExtra)   #
-# library(shinythemes)
+library(kableExtra)   # Extends knitr::kable options
 
 library(readxl)       # Read/write .xls, .xlsx files
 library(outliers)     # Functions:
@@ -53,21 +52,11 @@ shinyUI(fluidPage(
           multiple=FALSE,  accept = c("text/csv", ".txt", ".csv", ".xls", ".xlsx",
                                       "text/comma-separated-values,text/plain")
         )),
-        # File contain header?
-        column(4, shinyWidgets::awesomeCheckbox( #checkboxInput( #
-          inputId="checkHeader", label="Inclui cabeçalho", value=TRUE
+        # Check if contain header
+        column(4, shinyWidgets::awesomeCheckbox( #materialSwitch( #checkboxInput( #
+          inputId="checkHeader", label="Inclui cabeçalho", value=TRUE # right=FALSE, status="primary"
         ))
       ),
-
-      #shinyjs::disabled(
-      shinyjs::hidden(
-        div(id="insertManualData",
-            shinyWidgets::awesomeCheckbox( #checkboxInput( #
-              inputId="checkManual", label="Inserir dados manualmente", value=FALSE
-            )
-        )
-      ),
-      # textInput(inputId="data1", label="Inserir dados manualmente:"),
 
       actionButton(inputId="loadFile", label="Carregar", class="btn-primary",
                    icon=icon(name="angle-double-right", lib="font-awesome")),
@@ -109,13 +98,13 @@ shinyUI(fluidPage(
 
                 fluidRow(
                   column(4, plotOutput(outputId="histogram")),
-                  column(4, plotOutput(outputId="qqplot")),
-                  column(4, plotOutput(outputId="boxplot"))
+                  column(4, plotOutput(outputId="boxplot")),
+                  column(4, plotOutput(outputId="qqplot"))
                 ),
                 fluidRow(
-                  column(3, formattable::formattableOutput(outputId="table_stat")),
-                  column(5, formattable::formattableOutput(outputId="table_norm")),
-                  column(4)
+                  column(3, formattable::formattableOutput(outputId="table_summary")),
+                  column(5, formattable::formattableOutput(outputId="table_normtest")),
+                  column(4, formattable::formattableOutput(outputId="table_stats"))
                 )
 
               ), #endof tabpanel()
@@ -147,10 +136,10 @@ shinyUI(fluidPage(
 
                 ),
                 fluidRow(
-                  column(4, formattable::formattableOutput(outputId="table_results", width="50%")),
+                  column(4, formattable::formattableOutput(outputId="table_outres", width="50%")),
                   # column(4, tableOutput(outputId="table_results")),
                   column(1),
-                  column(4, formattable::formattableOutput(outputId="table_tests")),
+                  column(4, formattable::formattableOutput(outputId="table_outtest")),
                   # column(6, tableOutput(outputId="table_tests")),
                   column(3)
                 )
@@ -165,8 +154,6 @@ shinyUI(fluidPage(
     ) # endof mainPanel()
 
   ) #endof sidebarLayout()
-
-
 
 ))
 

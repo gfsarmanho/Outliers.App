@@ -4,13 +4,16 @@
 #==============#
 shinyServer(function(input, output, session){
 
+  # Add report file to temporary directory
+  temp_dir_report <- file.path(tempdir(), "logo.png")
+  file.copy("www/logo.png", temp_dir_report, overwrite=TRUE)
+
   # Reactive variables
   RV <- reactiveValues(
     dados = NULL,
     measu = "",
 
     res_fun_out = NULL,
-    tab_test    = NULL,
     out.ind     = NULL,
 
     res_iqr       = NULL,
@@ -21,6 +24,15 @@ shinyServer(function(input, output, session){
     res_chisq     = NULL,
 
     res_adj       = NULL
+  )
+
+  RVTAB <- reactiveValues(
+    tab_summary=NULL,
+    tab_normtest=NULL,
+    tab_stats=NULL,
+
+    tab_outres=NULL,
+    tab_outtest=NULL
   )
 
   observeEvent(
@@ -107,20 +119,42 @@ shinyServer(function(input, output, session){
   )
 
   #------------------------#
+  # TABLE: Data Statistics #
+  #------------------------#
+  output$table_summary <- renderFormattable({
+
+    # Table to be saved
+    tab_summary <- data.frame(
+      Medida = c("Mínimo", "Mediana", "Média", "Desvio-padrão", "Máximo"),
+      Valor  = sapply(list(min, mean, median, sd, max),
+                      function(fun, x) fun(x, na.rm=TRUE), x=RV$dados)
+    )
+
+    # Store dynamic table
+    RVTAB$tab_summary <- tab_summary
+
+    # Table to be show
+    formattable(tab_summary, align=c("c","c"), list(
+      Medida = formatter("span", style = ~ style(color="grey", font.weight="bold"))
+    ))
+
+  })
+
+  #------------------------#
   # TABLE: Normality tests #
   #------------------------#
-  output$table_norm <- renderFormattable({
+  output$table_normtest <- renderFormattable({
 
     # Functions to be applied
     fun_norm <- list(shapiro.test, function(x) ks.test(x, "pnorm"),
                      nortest::lillie.test, nortest::ad.test,
                      moments::jarque.test)
     # nortest::cvm.test, nortest::pearson.test, nortest::sf.test
-    res_norm <- sapply(fun_norm, do.call, args = list(RV$dados))
+    res_norm       <- sapply(fun_norm, do.call, args = list(RV$dados))
     res_norm.stats <- sapply(res_norm, with, c(statistic, p.value))
 
     # Table to be saved
-    tab_norm <- data.frame(
+    tab_normtest <- data.frame(
       "Teste" = c("Shapiro-Wilk", "Kolmogorov-Smirnov (K-S)",
                   "Lilliefors K-S", "Anderson-Darling", "Jarque-Bera"),
       # "Cramer-von Mises", "Qui-quadrado de Pearson", "Shapiro-Francia"
@@ -128,31 +162,34 @@ shinyServer(function(input, output, session){
       "P.valor"      = formattable::scientific( res_norm.stats[2, ] )
     )
 
+    # Store dynamic table
+    RVTAB$tab_normtest <- tab_normtest
+
     # Table to be show
-    formattable(tab_norm, align=c("c","c", "c"), list(
-      Teste = formatter("span", style = ~ style(color="grey", font.weight="bold")),
+    formattable(tab_normtest, align=c("c","c", "c"), list(
+      Teste     = formatter("span", style = ~ style(color="grey", font.weight="bold")),
       "P.valor" = formatter("span", style = x ~ style(color=ifelse(x>=0.05, "green", "red")))
     ))
 
   })
 
-  #------------------------#
-  # TABLE: Data Statistics #
-  #------------------------#
-  output$table_stat <- renderFormattable({
+  #-------------------------------#
+  # TABLE: Assymetry and Kurtosis #
+  #-------------------------------#
+  output$table_stats <- renderFormattable({
 
     # Table to be saved
-    tab_stat <- data.frame(
-      Medida = c("Mínimo", "1o Quartil", "Mediana", "Média", "3o Quartil", "Máximo",
-                 "Coef. Curtose", "Coef. assimetria"),
-      Valor  = c(summary(RV$dados), moments::kurtosis(RV$dados),
-                 moments::skewness(RV$dados))
+    tab_stats <- data.frame(
+      Medida = c("Coef. Curtose", "Coef. assimetria"),
+      Valor  = c(moments::kurtosis(RV$dados), moments::skewness(RV$dados))
     )
 
+    # Store dynamic table
+    RVTAB$tab_stats <- tab_stats
+
     # Table to be show
-    formattable(tab_stat, align=c("c","c"), list(
+    formattable(tab_stats, align=c("c","c"), list(
       Medida = formatter("span", style = ~ style(color="grey", font.weight="bold"))
-      #Valor = comma("span")
     ))
 
   })
@@ -160,32 +197,20 @@ shinyServer(function(input, output, session){
   #------------------------#
   # TABLE: Outlier results #
   #------------------------#
-  output$table_results <- renderFormattable({
+  output$table_outres <- renderFormattable({
     # output$table_results <- function(){
 
-    # Table to be saved
-    tab_dados <- data.frame(stringsAsFactors=FALSE,
-                            Réplica=1:RV$n.dados,
-                            Medição=RV$dados, #accounting(RV$dados),
-                            Resultado=rep(TRUE, RV$n.dados)
-    )
+    tab_outres  <- RV$res_fun_out$tab_outres
+    RV$out.ind  <- RV$res_fun_out$out.ind   # Could be anywhere...
 
-    RV$tab_test <- RV$res_fun_out$tab_test
-    RV$out.ind  <- RV$res_fun_out$out.ind
-    if(!is.null(RV$out.ind)) tab_dados$Resultado[RV$out.ind] <- FALSE
-
-    # Table to be show (using kable)
-    # kable(tab_dados, format="html") %>%
-    #   kable_styling(full_width=FALSE, position = "center",
-    #                 bootstrap_options=c("hover", "condensed"))
-    # # gsub("<thead>.*</thead>", "", tt) # Remove header
+    # Store dynamic table
+    RVTAB$tab_outres  <- tab_outres
 
     # Table to be show
-    formattable(tab_dados, align=c("c","c","c"), list(
+    formattable(tab_outres, align=c("c","c","c"), list(
       Réplica = formatter("span", style = ~ style(color="grey", font.weight="bold")),
       # Medição = color_tile("white", plot_colors[1]),
-      Resultado = formatter("span",
-                            style = x ~ style(color=ifelse(x, "green", "red")),
+      Resultado = formatter("span",  style = x ~ style(color=ifelse(x, "green", "red")),
                             x ~ icontext(ifelse(x, "ok", "remove"), ifelse(x, "Ok", "Outlier"))
       )
     ))
@@ -195,24 +220,14 @@ shinyServer(function(input, output, session){
   #----------------------#
   # TABLE: Outlier Tests #
   #----------------------#
-  # output$table_tests <- renderPrint({
-  #   # req(!is.null(RV$dados))
-  #   if(is.null(RV$dados)){
-  #     return(invisible())
-  #   } else {
-  #     tab_tests <- kable(RV$tab_test, format="html") %>%
-  #       kable_styling(bootstrap_options=c("hover", "condensed"),
-  #                     full_width=FALSE, position = "center") #%>%
-  #     #gsub("<thead>.*</thead>", "", tt) # Remove first line
-  #     tab_tests
-  #   }
-  # })
+  output$table_outtest <- renderFormattable({
 
-  output$table_tests <- renderFormattable({
+    tab_outtest <- RV$res_fun_out$tab_outtest
 
-    # RV$tab_test$Valor <- digits(x=RV$tab_test$Valor, digits=4, format="f")
+    # Store dynamic table
+    RVTAB$tab_outtest <- tab_outtest
 
-    formattable(RV$tab_test, align=c("l","r"), list(
+    formattable(tab_outtest, align=c("l","r"), list(
     "Parâmetro" = formatter("span", style = ~ style(color="grey", font.weight="bold"))
     ))
   })
@@ -239,7 +254,7 @@ shinyServer(function(input, output, session){
 
         if(!is.null(RV$out.ind)){
           legend("bottomright", pch=c(19,19), col=plot_colors[1:2],
-                 c("Data", "Outlier"), bty="n", cex=1.2, box.col="black")
+                 c("Dados", "Outlier sugerido"), bty="n", cex=1.2, box.col="black")
         }
 
       })
@@ -331,12 +346,20 @@ shinyServer(function(input, output, session){
                             # choices=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square"),
                             # selected=c("Intervalo", "Grubbs one", "Grubbs two", "Grubbs", "Dixon", "Chi-Square")
                           ),
-                          shinyWidgets::awesomeCheckboxGroup(
-                            inputId="diagsModal", label="Incluir gráficos diagnóstico:",
-                            choices=c("Histograma", "QQ-plot", "Boxplot"),
-                            selected=c("Histograma", "QQ-plot", "Boxplot")
+                          fluidRow(
+                            column(6, shinyWidgets::awesomeCheckboxGroup(
+                              inputId="diagsPlotModal", label="Incluir gráficos diagnóstico:",
+                              choices=c("Histograma", "QQ-plot", "Boxplot"),
+                              selected=c("Histograma", "QQ-plot", "Boxplot")
+                            )),
+                            column(6, shinyWidgets::awesomeCheckboxGroup(
+                              inputId="diagsTableModal", label="Incluir tabelas diagnóstico:",
+                              choices=c("Sumário dos dados", "Testes de Normalidade", "Assimetria e Curtose"),
+                              selected=c("Sumário dos dados", "Testes de Normalidade", "Assimetria e Curtose")
+                            ))
                           ),
                           textAreaInput(inputId="obsModal", label="Observações:", value="",
+                                        width='100%',
                                         placeholder="Insira aqui comentários gerais."),
                           br(),
                           shinyWidgets::radioGroupButtons(
@@ -366,12 +389,17 @@ shinyServer(function(input, output, session){
     },
 
     content = function(file) {
+      # formato <- switch(input$format, PDF="pdf", HTML="html", Word="docx")
+      # src <- normalizePath(paste("report_", input$format, ".Rmd"))
+
       src <- normalizePath("report.Rmd")
       owd <- setwd(tempdir())
       on.exit(setwd(owd))
       file.copy(from=src, to="report.Rmd", overwrite=TRUE)
+      # file.copy(from=src, to=paste("report_", input$format, ".Rmd"), overwrite=TRUE)
 
       library(rmarkdown)
+      # out <- rmarkdown::render(input=paste("report_", input$format, ".Rmd"),
       out <- rmarkdown::render(input="report.Rmd",
                                encoding="UTF-8",
                                output_format=switch(input$format,
@@ -383,7 +411,6 @@ shinyServer(function(input, output, session){
       file.rename(out, file)
     }
   ) #endof downloadHandler()
-
 
 })
 
